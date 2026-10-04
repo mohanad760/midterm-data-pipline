@@ -5,8 +5,12 @@ __pycache__/
 *.log
 .DS_Store
 *.tmp
+.env
+venv/
 
-# Exclude huge 13GB CSV file from git commits
-data/orders_huge_mixed_quality.csv
-data/orders_huge_mixed_quality.zip
-data/*.tmp
+# Ignore large datasets
+data/
+*.csv
+
+# Ignore PDF documents as requested
+*.pdf

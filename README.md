@@ -55,7 +55,7 @@
 
 ```bash
 # 1. استنساخ المستودع والدخول للمجلد
-cd midterm-data-pipeline0
+cd midterm-data-pipeline
 
 # 2. إنشاء بيئة افتراضية وتفعيلها
 python -m venv venv
@@ -74,7 +74,7 @@ cp .env.example .env
 ## 4. بنية المشروع (Project Structure)
 
 ```text
-midterm-data-pipeline0/
+midterm-data-pipeline/
 |-- README.md                         # دليل التشغيل والتوثيق الشامل
 |-- requirements.txt                  # متطلبات المشروع
 |-- .env.example                      # نموذج متغيرات البيئة
