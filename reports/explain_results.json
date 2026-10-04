@@ -1,0 +1,106 @@
+[
+  {
+    "query_name": "orders_by_city_and_status",
+    "query_title": "Orders by City and Status",
+    "index_name": "idx_city_status",
+    "index_keys": [
+      [
+        "city",
+        1
+      ],
+      [
+        "status",
+        1
+      ]
+    ],
+    "index_type": "compound",
+    "justification": "Compound index optimizes queries filtering by geographic location (city) and workflow state (status) together, avoiding memory sorting and full collection scans.",
+    "before": {
+      "stage": "LIMIT -> COLLSCAN",
+      "primary_stage": "COLLSCAN",
+      "execution_time_ms": 5,
+      "total_docs_examined": 6199,
+      "total_keys_examined": 0,
+      "docs_returned": 100,
+      "index_used": false
+    },
+    "after": {
+      "stage": "LIMIT -> FETCH -> IXSCAN",
+      "primary_stage": "IXSCAN",
+      "execution_time_ms": 10,
+      "total_docs_examined": 100,
+      "total_keys_examined": 100,
+      "docs_returned": 100,
+      "index_used": true
+    },
+    "docs_scanned_reduction_pct": 98.39
+  },
+  {
+    "query_name": "orders_by_customer",
+    "query_title": "Customer Order History",
+    "index_name": "idx_customer_date",
+    "index_keys": [
+      [
+        "customer_id",
+        1
+      ],
+      [
+        "order_date",
+        -1
+      ]
+    ],
+    "index_type": "compound",
+    "justification": "Compound index on customer_id and order_date allows instant retrieval of customer purchase history pre-sorted by date.",
+    "before": {
+      "stage": "LIMIT -> FETCH -> IXSCAN",
+      "primary_stage": "IXSCAN",
+      "execution_time_ms": 479,
+      "total_docs_examined": 89937,
+      "total_keys_examined": 89937,
+      "docs_returned": 1,
+      "index_used": true
+    },
+    "after": {
+      "stage": "LIMIT -> FETCH -> IXSCAN",
+      "primary_stage": "IXSCAN",
+      "execution_time_ms": 6,
+      "total_docs_examined": 1,
+      "total_keys_examined": 1,
+      "docs_returned": 1,
+      "index_used": true
+    },
+    "docs_scanned_reduction_pct": 100.0
+  },
+  {
+    "query_name": "high_value_orders",
+    "query_title": "High Value Orders",
+    "index_name": "idx_total_amount",
+    "index_keys": [
+      [
+        "total_amount",
+        -1
+      ]
+    ],
+    "index_type": "single",
+    "justification": "Single field index allows high-value order filtering and top-revenue sorting without in-memory sorting.",
+    "before": {
+      "stage": "SORT -> COLLSCAN",
+      "primary_stage": "COLLSCAN",
+      "execution_time_ms": 76,
+      "total_docs_examined": 89937,
+      "total_keys_examined": 0,
+      "docs_returned": 100,
+      "index_used": false
+    },
+    "after": {
+      "stage": "LIMIT -> FETCH -> IXSCAN",
+      "primary_stage": "IXSCAN",
+      "execution_time_ms": 6,
+      "total_docs_examined": 100,
+      "total_keys_examined": 100,
+      "docs_returned": 100,
+      "index_used": true
+    },
+    "docs_scanned_reduction_pct": 99.89
+  }
+]

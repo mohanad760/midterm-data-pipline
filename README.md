@@ -1,129 +1,189 @@
-# Hybrid Big Data Pipeline (ELT)
-### Python Batch | Apache Spark | MongoDB | Data Quality | Idempotency
+# Big Data Hybrid Pipeline & Analytics Engine
+### Phase 1 (Midterm) + Phase 2 (Final Project)
+**Python Batch | Apache Spark | MongoDB | FastAPI | Materialized Views | APScheduler**
 
-مشروع خط البيانات الضخمة الهجين لمعالجة وتصنيف بيانات الطلبات الضخمة وفق نمط **ELT**.
+مشروع خط البيانات الضخمة المتكامل لمعالجة، تنظيف، استعلام، وتجميع بيانات الطلبات الضخمة وفق معمارية **ELT** مع واجهة تشغيل موحدة ومهام مجدولة.
 
 ---
 
 ## 1. نظرة عامة على المشروع (Project Overview)
-يهدف المشروع إلى بناء خط بيانات ذكي يتعامل مع ملفات البيانات الضخمة وغير النظيفة:
-1. **File Router:** يحدد المحرك تلقائياً حسب حجم الملف:
+
+المشروع مبني على مرحلتين متكاملتين داخل نفس المستودع:
+
+### المرحلة الأولى: خط البيانات الهجين (Midterm Pipeline)
+1. **File Router الذكي:** توجيه تلقائي حسب حجم الملف:
    - **Python Batch Loader:** للملفات الصغيرة ($\le 200\text{ MB}$) عبر معالجة تدفقية خفيفة وسريعة.
-   - **PySpark Loader:** للملفات الكبيرة ($> 200\text{ MB}$) عبر معالجة موزعة ومتوازية.
-2. **Raw Layer (ELT Pattern):** تحميل كافة البيانات كما هي أولاً في `orders_raw` دون أي فلترة أو تنظيف، مع توثيق المصدر ورقم الصف ووقت التحميل.
-3. **Automated Cleaning & Audit Trail:** تطبيق أكثر من 8 قواعد تنظيف آلية مع توثيق التعديلات السابقة والجديدة ورمز القاعدة.
-4. **Quarantine Isolation:** عزل السجلات غير القابلة للتصحيح في `orders_quarantine` وتوثيق أكواد الخطأ وتفاصيلها دون فقدان أي سجل.
-5. **Idempotency & Upsert:** اعتماد `order_id` كمفتاح عمل أساسي، وإنشاء فهرس فريد `Unique Index` في `orders_validated`، واستخدام `Upsert` لضمان عدم تكرار السجلات عند إعادة التشغيل.
+   - **PySpark Loader:** للملفات الكبيرة ($> 200\text{ MB}$) عبر معالجة موزعة متوازية بكافة الأنوية (تم بنجاح تحميل 30,000,000 سجل بحجم 12.65GB بسرعة 20,593 صف/ث).
+2. **Raw Layer (ELT Pattern):** تحميل كافة البيانات الأصلية أولاً في `orders_raw` مع توثيق المصدر ورقم الصف ووقت التحميل.
+3. **Data Quality & Audit Trail:** تطبيق أكثر من 8 قواعد تنظيف آلية مع توثيق التعديلات السابقة والجديدة ورمز القاعدة.
+4. **Quarantine Isolation:** عزل السجلات غير القابلة للإصلاح في `orders_quarantine` مع أكواد وتفاصيل الأخطاء.
+5. **Idempotency & Upsert:** اعتماد `order_id` كمفتاح فريد `Unique Index` واستخدام `Upsert` لمنع أي تكرار عند إعادة التشغيل.
 6. **Strict Consistency Formula:** التحقق الرياضي الصارم من اتساق العدادات:
-   $$\text{run\_raw\_count} = \text{run\_valid\_count} + \text{run\_corrected\_count} + \text{run\_quarantine\_count}$$
+   $$\text{Raw Loaded} = \text{Valid} + \text{Corrected} + \text{Quarantine}$$
+
+### المرحلة الثانية: التحليلات، الفهارس، والواجهة الموحدة (Final Phase 2)
+1. **5 استعلامات عملية (Queries):** استعلامات واقعية مخصصة للبيانات.
+2. **فهارس الأداء (Indexes & Compound Index):** إنشاء 4 فهارس متخصصة منها فهرس مركب `idx_city_status` وفهرس مركب `idx_customer_date`.
+3. **مقارنة Explain ExecutionStats:** مقارنة أداء الاستعلامات قبل وبعد الفهارس وتوثيق انخفاض فحص الوثائق بنسبة تتجاوز 98% إلى 100%.
+4. **5 تقارير تجميعية متقدمة (Aggregation Reports):**
+   - المبيعات حسب المدينة (`sales_by_city`)
+   - أفضل المنتجات مبيعاً وإيراداً (`top_products`)
+   - أفضل العملاء إنفاقاً (`top_customers`)
+   - المبيعات والاتجاه اليومي (`sales_by_period`)
+   - توزيع الطلبات حسب حالة العمل (`orders_by_status`)
+5. **العروض المادية التزايدية (Materialized Views):**
+   - `daily_sales_summary`
+   - `top_products_summary`
+   - **آلية التحديث التزايدي:** تعتمد على العلامة المائية `last_synced_at` في `mv_sync_metadata` لتحديث الشرائح الجديدة فقط دون إعادة بناء البيانات من البداية.
+6. **المهام المجدولة (Scheduled Jobs):**
+   - مهمة التحديث التزايدي للعروض المادية (`refresh_materialized_views`)
+   - مهمة التقرير الإداري الدوري المجمع (`generate_executive_report`)
+   - تسجيل سجلات التشغيل في `job_logs` وإمكانية التشغيل اليدوي للاختبار.
+7. **واجهة API موحدة عبر FastAPI:**
+   - واجهة تشغيل واختبار بسيطة مع توثيق Swagger تفاعلي عبر `/docs`.
 
 ---
 
 ## 2. متطلبات التشغيل (Prerequisites)
 - **Python 3.10+** (تم اختباره على Python 3.11)
 - **MongoDB Server** (يعمل محلياً على المنفذ `27017`)
-- **Java JDK 17+** (لتشغيل محرك Apache Spark)
+- **Java JDK 17+** (لمحرك Apache Spark)
 
 ---
 
 ## 3. التثبيت والإعداد (Setup)
 
 ```bash
-# تثبيت الحزم المطلوبة
+# 1. استنساخ المستودع والدخول للمجلد
+cd midterm-data-pipeline0
+
+# 2. إنشاء بيئة افتراضية وتفعيلها
+python -m venv venv
+.\venv\Scripts\activate   # Windows
+# source venv/bin/activate # Linux/Mac
+
+# 3. تثبيت المتطلبات
 pip install -r requirements.txt
+
+# 4. نسخ ملف الإعدادات
+cp .env.example .env
 ```
 
 ---
 
-## 4. بنية المجلدات (Project Structure)
+## 4. بنية المشروع (Project Structure)
+
 ```text
 midterm-data-pipeline0/
-|-- README.md                         # دليل التشغيل والتوثيق
+|-- README.md                         # دليل التشغيل والتوثيق الشامل
 |-- requirements.txt                  # متطلبات المشروع
+|-- .env.example                      # نموذج متغيرات البيئة
 |-- config/
-|   `-- settings.py                   # إعدادات المسارات وقاعدة البيانات
+|   `-- settings.py                   # إعدادات المسارات، Spark، و MongoDB
 |-- data/
-|   |-- orders_huge_mixed_quality.csv # الملف الضخم الأساسي (~13 GB)
-|   `-- orders_sample_100000.csv      # العينة الصغيرة المولدة (100k صف)
+|   |-- orders_huge_mixed_quality.csv # الملف الضخم (30M صف ~ 12.65GB)
+|   `-- orders_sample_100000.csv      # العينة التدفقية (100k صف)
 |-- src/
-|   |-- main.py                       # نقطة التشغيل الرئيسية للمشروع
-|   |-- file_router.py                # موجّه المحرك التلقائي حسب الحجم
-|   |-- create_small_sample.py        # سكربت توليد عينة تدفقية
+|   |-- api.py                        # واجهة FastAPI الموحدة للتقييم والتشغيل
+|   |-- queries_and_indexes.py        # 5 استعلامات، فهارس مركبة، ومقارنة explain
+|   |-- aggregations.py               # 5 تقارير تجميعية مستقلة
+|   |-- materialized_views.py         # العروض المادية وآلية التحديث التزايدي
+|   |-- scheduler.py                  # المهام المجدولة وسجلات التنفيذ job_logs
+|   |-- final_demo.py                 # سكربت العرض الحي للمشروع النهائي (Phase 2)
+|   |-- demo_verification.py          # سكربت العرض الحي للمشروع النصفي (Midterm)
+|   |-- main.py                       # منسق خط البيانات الهجين
+|   |-- file_router.py                # موجّه المحرك التلقائي
 |   |-- batch_loader.py               # محرك التحميل الدفعي السريع
-|   |-- spark_loader.py               # محرك المعالجة المتوازية PySpark
-|   |-- quality_rules.py              # قواعد الجودة والتنظيف وسجل التدقيق
-|   |-- elt_pipeline.py               # خط التحويل والتصنيف وUpsert
-|   |-- mongo_setup.py                # تهيئة الفهارس والمجموعات
-|   |-- metrics.py                    # تسجيل المقاييس والتقارير
-|   `-- demo_verification.py          # سكربت إثبات خطوات العرض العملي
-|-- tests/
-|   |-- test_cleaning_rules.py        # اختبارات قواعد التنظيف
-|   `-- test_classification.py        # اختبارات التصنيف والعزل
+|   |-- spark_loader.py               # محرك PySpark المتوازي (30M صف)
+|   |-- quality_rules.py              # قواعد التنظيف وسجل التدقيق
+|   |-- elt_pipeline.py               # تحويل وتصنيف وUpsert البيانات
+|   |-- mongo_setup.py                # تهيئة فهارس المجموعات
+|   `-- metrics.py                    # توليد المقاييس وتقارير Markdown
 |-- reports/
-|   |-- results.json                  # ملف نتائج ومقاييس كل تشغيل
-|   `-- results.md                    # تقرير المقاييس المحدث
-`-- docs/
-    `-- architecture.md               # المعمارية والتبرير التقني
+|   |-- results.json                  # مقاييس تشغيل خط البيانات
+|   |-- results.md                    # تقرير ملخص التشغيل
+|   |-- explain_results.json          # نتائج فحص explain قبل وبعد الفهارس
+|   |-- explain_results.md            # جدول مقارنة الأداء وتبرير الفهارس
+|   `-- executive_summary.json        # التقرير الدوري الناتج عن المهام المجدولة
+`-- tests/
+    |-- test_cleaning_rules.py        # اختبارات قواعد الجودة والتنظيف
+    |-- test_classification.py        # اختبارات التصنيف والعزل
+    `-- test_final_project.py         # اختبارات شاملة للمرحلة النهائية (25/25 ناجحة)
 ```
 
 ---
 
-## 5. أوامر التشغيل (Execution Commands)
+## 5. أوامر التشغيل والاستعراض (Execution & Evaluation)
 
-### أ. إنشاء العينة الصغيرة (Small Sample Extraction)
+### أولاً: العرض الحي الشامل (Demo)
 ```bash
-python src/create_small_sample.py --input data/orders_huge_mixed_quality.csv --rows 100000
-```
+# تشغيل العرض الحي المباشر لجميع متطلبات المشروع النهائي (Phase 2):
+python src/final_demo.py
 
-### ب. تشغيل خط البيانات عبر الموجه التلقائي (Unified Pipeline Runner)
-```bash
-# تشغيل العينة الصغيرة (يختار تلقائياً python_batch):
-python src/main.py --input data/orders_sample_100000.csv
-
-# تشغيل الملف الكبير (يختار تلقائياً pyspark):
-python src/main.py --input data/orders_huge_mixed_quality.csv
-```
-
-### ج. تشغيل الاختبارات الآلية (Unit Tests)
-```bash
-python -m pytest tests/ -v
-```
-
-### د. سيناريو العرض العملي والمناقشة (Live Oral Demo)
-قم بتشغيل السكربت الشامل لعرض خطوات التحقق الثمانية المطلوبة أمام المحاضر:
-```bash
+# تشغيل العرض الحي للمشروع النصفي (Midterm):
 python src/demo_verification.py
 ```
 
+### ثانياً: تشغيل اختبارات الوحدة الآلية (Unit Tests)
+```bash
+# تشغيل جميع الاختبارات الـ 25:
+python -m pytest tests/
+```
+
+### ثالثاً: تشغيل واجهة API الموحدة (FastAPI + Swagger)
+```bash
+# تشغيل خادم الـ API:
+uvicorn src.api:app --host 127.0.0.1 --port 8000
+```
+- تصفح التوثيق التفاعلي الكامل عبر Swagger UI: **http://127.0.0.1:8000/docs**
+
+#### نقاط الـ API الرئيسية المتوفرة:
+| الطريقة | المسار | الوظيفة |
+| :---: | :--- | :--- |
+| `GET` | `/health` | فحص صحة النظام وحالة اتصال MongoDB وأعداد الوثائق |
+| `POST` | `/ingest` | تشغيل خط إدخال البيانات النصفي (يدعم batch و spark و auto) |
+| `POST` | `/indexes` | إنشاء فهارس الاستعلامات بما فيها الفهرس المركب |
+| `GET` | `/queries` | عرض قائمة الـ 5 استعلامات المتاحة |
+| `GET` | `/queries/{name}` | تنفيذ استعلام محدد مع معاملات ترشيح اختيارية |
+| `GET` | `/queries/{name}/explain` | استخراج إحصائيات `executionStats` للاستعلام |
+| `GET` | `/aggregations` | عرض قائمة الـ 5 تقارير التجميعية |
+| `GET` | `/aggregations/{name}` | تنفيذ تقرير تجميعي محدد |
+| `POST` | `/refresh-mv` | تشغيل التحديث التزايدي للعروض المادية |
+| `GET` | `/materialized-views/{name}` | استعراض السجلات المحسوبة مسبقاً في العرض المادي |
+| `GET` | `/jobs` | عرض قائمة المهام المجدولة وسجلات التنفيذ السابقة |
+| `POST` | `/jobs/{name}/run` | تشغيل أي مهمة مجدولة يدوياً وفورياً للاختبار |
+
 ---
 
-## 6. قواعد التنظيف وأكواد العزل المطبقة
+## 6. ملخص مقارنة أداء الفهارس (Explain ExecutionStats)
 
-### قواعد التنظيف الآلي (Cleaning Rules):
-1. `ARABIC_DIGITS_CONVERTED`: تحويل الأرقام العربية والفواصل العشرية (`٠-٩`, `٫`) إلى أرقام لاتينية قياسية.
-2. `WORD_NUMBER_CONVERTED`: تحويل الأسعار بالكلمات (`ألفان`, `خمسة آلاف`) إلى قيم عددية.
-3. `CURRENCY_STANDARDIZED`: إزالة نصوص العملات وتوحيدها إلى `YER`.
-4. `THOUSAND_SEPARATORS_REMOVED`: إزالة فواصل الآلاف من القيم النقدية.
-5. `PHONE_FORMAT_NORMALIZED`: تنظيف المسافات والرموز وتوحيد صيغة أرقام الهواتف.
-6. `EMAIL_REPEATED_SYMBOLS`: تصحيح الرموز المكررة مثل `@@` و `..` في البريد الإلكتروني.
-7. `DATE_FORMAT_STANDARDIZED`: توحيد التواريخ بمختلف صيغها إلى صيغة ISO القياسية.
-8. `WHITESPACE_TRIMMED` & `STATUS_SYNONYM_MAPPED`: إزالة المسافات وتوحيد مرادفات حالات الطلب والدفع.
-9. `TOTAL_RECALCULATED`: إعادة احتساب إجمالي الطلب ومطابقته بدقة.
+تم إجراء اختبار مقارنة تفصيلي قبل وبعد إنشاء الفهارس على بيانات `orders_validated`:
 
-### أكواد العزل في `orders_quarantine`:
-- `MISSING_ORDER_ID`: معرف الطلب مفقود.
-- `MISSING_CUSTOMER_ID`: معرف العميل مفقود.
-- `INVALID_IMPOSSIBLE_DATE`: تاريخ غير منطقي أو تالف.
-- `CORRUPTED_ITEMS_JSON`: نص JSON غير قابل للتحليل.
-- `EMPTY_ITEMS`: مصفوفة عناصر فارغة.
-- `AMBIGUOUS_NEGATIVE_VALUE`: كميات أو أسعار سالبة غير صالحة.
-- `UNKNOWN_PRICE`: تعذر تحديد السعر أو إجمالي الطلب.
-- `MULTIPLE_CONFLICTING_ERRORS`: وجود أكثر من خطأ جوهري في نفس السجل.
+| الاستعلام | الفهرس المستهدف | نوع الفهرس | المرحلة قبل | المرحلة بعد | فحص الوثائق قبل | فحص الوثائق بعد | نسبة خفض الفحص |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Orders by City and Status** | `idx_city_status` | Compound | `COLLSCAN` | `IXSCAN` | 6,199 | 100 | **98.39%** |
+| **Customer Order History** | `idx_customer_date` | Compound | `COLLSCAN` | `IXSCAN` | 89,937 | 1 | **100.0%** |
+| **High Value Orders** | `idx_total_amount` | Single | `SORT -> COLLSCAN` | `IXSCAN` | 89,937 | 100 | **99.89%** |
+
+*التفاصيل والتبريرات الفنية موثقة في [reports/explain_results.md](reports/explain_results.md).*
 
 ---
 
-## 7. إثبات الـ Idempotency و Upsert
-- عند إعادة تشغيل نفس البيانات أو معالجة سجلات موجودة مسبقاً:
-  - لا تزيد أعداد `orders_validated`.
-  - لا يحدث خطأ تكرار (Duplicate Key Error).
-  - يتم تحديث السجل المعدل (`updated_count`) مع بقاء إجمالي السجلات ثابتاً تماماً.
+## 7. آلية التحديث التزايدي للعروض المادية (Incremental MV Refresh)
+
+1. العرضان الماديان:
+   - `daily_sales_summary` في مجموعة `mv_daily_sales_summary`.
+   - `top_products_summary` في مجموعة `mv_top_products_summary`.
+2. تحتفظ مجموعة `mv_sync_metadata` بأحدث تاريخ مزامنة `last_synced_at`.
+3. عند استدعاء التحديث التزايدي، يستعلم النظام فقط عن السجلات التي أُضيفت أو عُدلت بعد تاريخ العلامة المائية:
+   `{"validated_at": {"$gt": last_synced_at}}`
+4. يتم دمج المقادير الجديدة تراكمياً باستخدام عمليات `$inc` الذرية في MongoDB، مما يلغي تماماً الحاجة لإعادة حساب الـ 30 مليون صف من البداية.
+
+---
+
+## 8. إنجاز تشغيل الـ 30 مليون صف (Scale Execution Milestone)
+- **الملف:** `orders_huge_mixed_quality.csv` (12.65 GB).
+- **السجلات المدخلة:** 30,000,000 سجل في `orders_raw`.
+- **المحرك:** PySpark عبر 99 Partition وجميع الأنوية الـ 8.
+- **الوقت المستغرق:** 1,456.82 ثانية (~24.2 دقيقة).
+- **معدل السرعة:** **20,592.81 صف/ثانية**.
