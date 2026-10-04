@@ -18,6 +18,8 @@ DATABASE_NAME = os.getenv("DATABASE_NAME", "midterm_data_pipeline0")
 RAW_COLLECTION = os.getenv("RAW_COLLECTION", "orders_raw")
 VALIDATED_COLLECTION = os.getenv("VALIDATED_COLLECTION", "orders_validated")
 QUARANTINE_COLLECTION = os.getenv("QUARANTINE_COLLECTION", "orders_quarantine")
+MONGODB_MAX_POOL_SIZE = int(os.getenv("MONGODB_MAX_POOL_SIZE", "200"))
+MONGODB_SOCKET_TIMEOUT_MS = int(os.getenv("MONGODB_SOCKET_TIMEOUT_MS", "600000"))
 
 # Routing Configuration
 # Threshold in MB to decide between Python Batch Loader and PySpark Loader
@@ -29,11 +31,12 @@ SMALL_FILE_THRESHOLD_MB = float(os.getenv("SMALL_FILE_THRESHOLD_MB", "200.0"))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "5000"))
 SPARK_BATCH_SIZE = int(os.getenv("SPARK_BATCH_SIZE", "5000"))
 
-# Spark Specific Configuration
+# Spark Specific Configuration (Optimized for 16GB RAM & 8 Cores)
 SPARK_APP_NAME = os.getenv("SPARK_APP_NAME", "Midterm-Data-Pipeline-PySpark")
 SPARK_MASTER = os.getenv("SPARK_MASTER", "local[*]")
-SPARK_SHUFFLE_PARTITIONS = os.getenv("SPARK_SHUFFLE_PARTITIONS", "8")
-SPARK_DRIVER_MEMORY = os.getenv("SPARK_DRIVER_MEMORY", "4g")
+SPARK_SHUFFLE_PARTITIONS = os.getenv("SPARK_SHUFFLE_PARTITIONS", "16")
+SPARK_DRIVER_MEMORY = os.getenv("SPARK_DRIVER_MEMORY", "8g")
+SPARK_BATCH_SIZE = int(os.getenv("SPARK_BATCH_SIZE", "10000"))
 
 # Default Data Paths
 DEFAULT_LARGE_INPUT = str(DATA_DIR / "orders_huge_mixed_quality.csv")

@@ -42,7 +42,11 @@ def get_spark_session() -> SparkSession:
         .appName(settings.SPARK_APP_NAME)
         .master(settings.SPARK_MASTER)
         .config("spark.driver.memory", settings.SPARK_DRIVER_MEMORY)
+        .config("spark.driver.maxResultSize", "4g")
+        .config("spark.default.parallelism", "8")
         .config("spark.sql.shuffle.partitions", settings.SPARK_SHUFFLE_PARTITIONS)
+        .config("spark.network.timeout", "600s")
+        .config("spark.executor.heartbeatInterval", "60s")
         .config("spark.ui.enabled", "true")
         .getOrCreate()
     )
@@ -55,7 +59,12 @@ def make_partition_writer(mongo_uri: str, db_name: str, coll_name: str, batch_si
     def write_partition(partition_rows):
         from pymongo import MongoClient
 
-        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+        client = MongoClient(
+            mongo_uri,
+            maxPoolSize=getattr(settings, "MONGODB_MAX_POOL_SIZE", 200),
+            socketTimeoutMS=getattr(settings, "MONGODB_SOCKET_TIMEOUT_MS", 600000),
+            serverSelectionTimeoutMS=5000,
+        )
         try:
             col = client[db_name][coll_name]
             buffer = []
@@ -64,10 +73,26 @@ def make_partition_writer(mongo_uri: str, db_name: str, coll_name: str, batch_si
                 row_dict = row.asDict(recursive=True)
                 buffer.append(row_dict)
                 if len(buffer) >= batch_size:
-                    col.insert_many(buffer, ordered=False)
+                    for attempt in range(3):
+                        try:
+                            col.insert_many(buffer, ordered=False)
+                            break
+                        except Exception as e:
+                            if attempt == 2:
+                                raise
+                            import time
+                            time.sleep(2 ** attempt)
                     buffer = []
             if buffer:
-                col.insert_many(buffer, ordered=False)
+                for attempt in range(3):
+                    try:
+                        col.insert_many(buffer, ordered=False)
+                        break
+                    except Exception as e:
+                        if attempt == 2:
+                            raise
+                        import time
+                        time.sleep(2 ** attempt)
         finally:
             client.close()
 
@@ -152,11 +177,11 @@ def load_raw_spark(file_path: str, run_id: str = None, max_rows: int = None) -> 
         print(f"- Total Rows Ingested: {inserted_count:,}")
         print(f"- Partitions: {input_partitions}")
         print(f"- Elapsed Time: {elapsed:.2f} seconds")
-        print(f"- Throughput: {throughput:.0f} rows/sec\n")
-
         return {
             "run_id": run_id,
             "engine_used": "pyspark",
+            "file_name": Path(file_path).name,
+            "file_size_mb": round(Path(file_path).stat().st_size / (1024 * 1024), 2),
             "rows_read": inserted_count,
             "raw_loaded": inserted_count,
             "partitions": input_partitions,
@@ -167,9 +192,30 @@ def load_raw_spark(file_path: str, run_id: str = None, max_rows: int = None) -> 
         }
 
     finally:
-        # Note: We keep SparkSession or stop it safely in main
-        pass
+        spark.stop()
 
 
 if __name__ == "__main__":
-    load_raw_spark(settings.DEFAULT_SAMPLE_INPUT, max_rows=10000)
+    import argparse
+    from src.metrics import save_run_metrics
+
+    parser = argparse.ArgumentParser(description="PySpark Raw Ingestion for Large File")
+    parser.add_argument(
+        "--input",
+        type=str,
+        default=settings.DEFAULT_LARGE_INPUT,
+        help="Path to large CSV file"
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Optional row limit"
+    )
+    args = parser.parse_args()
+
+    print(f"Starting PySpark loader on: {args.input}")
+    res = load_raw_spark(args.input, max_rows=args.limit)
+    save_run_metrics(res)
+    print("PySpark run complete and metrics saved!")
+
