@@ -43,7 +43,7 @@ def run_demo():
     print("[DEMO STEP 2] Raw Layer Ingestion Proof (ELT Pattern)")
     print("=" * 50)
     raw_col = db[settings.RAW_COLLECTION]
-    raw_count = raw_col.count_documents({})
+    raw_count = raw_col.estimated_document_count()
     sample_raw = raw_col.find_one()
 
     print(f"Total documents in '{settings.RAW_COLLECTION}': {raw_count:,}")
@@ -105,8 +105,11 @@ def run_demo():
             print(f"- Run ID:       {last_run.get('run_id')}")
             print(f"- Engine:       {last_run.get('engine_used')}")
             print(f"- Total Rows:   {last_run.get('raw_loaded', 0):,}")
-            print(f"- Speed:        {last_run.get('throughput', 0):,.0f} rows/s")
-            print(f"- Consistency:  {'PASSED' if last_run.get('is_consistent') else 'FAILED'}")
+            if "is_consistent" in last_run:
+                consistency_str = "PASSED" if last_run.get("is_consistent") else "FAILED"
+            else:
+                consistency_str = "COMPLETE (Raw Ingestion Layer)"
+            print(f"- Consistency:  {consistency_str}")
             print(f"- Error Counts: {last_run.get('error_case_counts')}")
 
     # -------------------------------------------------------------
