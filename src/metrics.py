@@ -76,11 +76,14 @@ def generate_markdown_report(all_results: List[Dict[str, Any]], md_path: Path):
 
     for r in all_results:
         raw = r.get("raw_loaded", 0)
-        v = r.get("valid_count", 0)
-        c = r.get("corrected_count", 0)
-        q = r.get("quarantine_count", 0)
-        status = "PASSED" if raw == (v + c + q) else "FAILED"
-        lines.append(f"- **{r.get('run_id')}**: {raw:,} Raw = {v:,} Valid + {c:,} Corrected + {q:,} Quarantined [{status}]")
+        if "valid_count" in r:
+            v = r.get("valid_count", 0)
+            c = r.get("corrected_count", 0)
+            q = r.get("quarantine_count", 0)
+            status = "PASSED" if raw == (v + c + q) else "FAILED"
+            lines.append(f"- **{r.get('run_id')}**: {raw:,} Raw = {v:,} Valid + {c:,} Corrected + {q:,} Quarantined [{status}]")
+        else:
+            lines.append(f"- **{r.get('run_id')}**: {raw:,} Raw Ingested to orders_raw [{r.get('engine_used', '').upper()} INGESTION COMPLETE]")
 
     with open(md_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
