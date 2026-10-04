@@ -118,5 +118,19 @@
     "unchanged_count": 0,
     "is_consistent": true,
     "recorded_at": "2026-10-04T14:45:24.926741"
+  },
+  {
+    "run_id": "spark_8e336f1dca81",
+    "engine_used": "pyspark",
+    "file_name": "orders_sample_100000.csv",
+    "file_size_mb": 41.67,
+    "rows_read": 5000,
+    "raw_loaded": 5000,
+    "partitions": 1,
+    "elapsed_seconds": 27.0,
+    "throughput": 185.18,
+    "batch_size": 10000,
+    "errors": [],
+    "recorded_at": "2026-10-04T15:32:52.607786"
   }
 ]

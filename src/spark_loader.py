@@ -54,7 +54,7 @@ def get_spark_session() -> SparkSession:
     return spark
 
 
-def make_partition_writer(mongo_uri: str, db_name: str, coll_name: str, batch_size: int):
+def make_partition_writer(mongo_uri: str, db_name: str, coll_name: str, batch_size: int, counter=None):
     """Factory creating partition writer for PyMongo bulk write."""
     def write_partition(partition_rows):
         from pymongo import MongoClient
@@ -82,6 +82,8 @@ def make_partition_writer(mongo_uri: str, db_name: str, coll_name: str, batch_si
                                 raise
                             import time
                             time.sleep(2 ** attempt)
+                    if counter is not None:
+                        counter.add(len(buffer))
                     buffer = []
             if buffer:
                 for attempt in range(3):
@@ -93,6 +95,8 @@ def make_partition_writer(mongo_uri: str, db_name: str, coll_name: str, batch_si
                             raise
                         import time
                         time.sleep(2 ** attempt)
+                if counter is not None:
+                    counter.add(len(buffer))
         finally:
             client.close()
 
@@ -151,25 +155,23 @@ def load_raw_spark(file_path: str, run_id: str = None, max_rows: int = None) -> 
             .drop("_row_id")
         )
 
+        # Use Spark accumulator for instant and accurate inserted row count
+        row_counter = spark.sparkContext.accumulator(0)
+
         # Write in parallel across partitions
         writer = make_partition_writer(
             settings.MONGODB_URI,
             settings.DATABASE_NAME,
             settings.RAW_COLLECTION,
-            settings.SPARK_BATCH_SIZE
+            settings.SPARK_BATCH_SIZE,
+            counter=row_counter
         )
 
         print("- Writing partitions in parallel to MongoDB...")
         prepared_df.foreachPartition(writer)
 
         elapsed = time.time() - start_time
-
-        # Check total inserted for this run_id
-        from src.mongo_setup import get_mongo_client, get_database
-        mclient = get_mongo_client()
-        mdb = get_database(mclient)
-        inserted_count = mdb[settings.RAW_COLLECTION].count_documents({"run_id": run_id})
-        mclient.close()
+        inserted_count = row_counter.value
 
         throughput = inserted_count / elapsed if elapsed > 0 else 0
 

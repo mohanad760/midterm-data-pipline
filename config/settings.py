@@ -35,7 +35,7 @@ SPARK_BATCH_SIZE = int(os.getenv("SPARK_BATCH_SIZE", "5000"))
 SPARK_APP_NAME = os.getenv("SPARK_APP_NAME", "Midterm-Data-Pipeline-PySpark")
 SPARK_MASTER = os.getenv("SPARK_MASTER", "local[*]")
 SPARK_SHUFFLE_PARTITIONS = os.getenv("SPARK_SHUFFLE_PARTITIONS", "16")
-SPARK_DRIVER_MEMORY = os.getenv("SPARK_DRIVER_MEMORY", "8g")
+SPARK_DRIVER_MEMORY = os.getenv("SPARK_DRIVER_MEMORY", "5g")
 SPARK_BATCH_SIZE = int(os.getenv("SPARK_BATCH_SIZE", "10000"))
 
 # Default Data Paths
