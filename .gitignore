@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.log
+.DS_Store
+*.tmp
+
+# Exclude huge 13GB CSV file from git commits
+data/orders_huge_mixed_quality.csv
+data/orders_huge_mixed_quality.zip
+data/*.tmp

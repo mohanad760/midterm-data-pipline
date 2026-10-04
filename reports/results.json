@@ -1,0 +1,62 @@
+[
+  {
+    "run_id": "batch_8b742f504a89",
+    "file_name": "orders_sample_100000.csv",
+    "file_size_mb": 41.67,
+    "engine_used": "python_batch",
+    "rows_read": 100000,
+    "raw_loaded": 100000,
+    "valid_count": 0,
+    "corrected_count": 90556,
+    "quarantine_count": 9444,
+    "elapsed_seconds": 49.78,
+    "throughput": 2009.02,
+    "batch_size": 5000,
+    "partitions": 1,
+    "error_case_counts": {
+      "AMBIGUOUS_NEGATIVE_VALUE": 674,
+      "MULTIPLE_CONFLICTING_ERRORS": 674,
+      "MISSING_CUSTOMER_ID": 1411,
+      "UNKNOWN_PRICE": 5249,
+      "CORRUPTED_ITEMS_JSON": 1338,
+      "MISSING_ORDER_ID": 721,
+      "EMPTY_ITEMS": 677,
+      "INVALID_IMPOSSIBLE_DATE": 722
+    },
+    "inserted_count": 89937,
+    "updated_count": 619,
+    "unchanged_count": 0,
+    "is_consistent": true,
+    "recorded_at": "2026-10-04T13:20:00.582533"
+  },
+  {
+    "run_id": "spark_ba394e984d9e",
+    "file_name": "orders_sample_100000.csv",
+    "file_size_mb": 41.67,
+    "engine_used": "pyspark",
+    "rows_read": 10000,
+    "raw_loaded": 10000,
+    "valid_count": 0,
+    "corrected_count": 9043,
+    "quarantine_count": 957,
+    "elapsed_seconds": 86.11,
+    "throughput": 116.13,
+    "batch_size": 5000,
+    "partitions": 1,
+    "error_case_counts": {
+      "AMBIGUOUS_NEGATIVE_VALUE": 94,
+      "MULTIPLE_CONFLICTING_ERRORS": 63,
+      "MISSING_CUSTOMER_ID": 145,
+      "UNKNOWN_PRICE": 478,
+      "CORRUPTED_ITEMS_JSON": 136,
+      "MISSING_ORDER_ID": 81,
+      "EMPTY_ITEMS": 83,
+      "INVALID_IMPOSSIBLE_DATE": 66
+    },
+    "inserted_count": 0,
+    "updated_count": 9043,
+    "unchanged_count": 0,
+    "is_consistent": true,
+    "recorded_at": "2026-10-04T13:21:49.174169"
+  }
+]
